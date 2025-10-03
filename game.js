@@ -5,37 +5,87 @@ kaboom({
  background: [0, 100, 200],
 });
 
-setGravity(800);
+setGravity(1200);
 
 // Load a player sprite
 loadSprite("ghosty", "https://kaboomjs.com/sprites/ghosty.png");
+loadSprite("moon", "https://kaboomjs.com/sprites/moon.png");
 
-// --- The Player Character ---
-const player = add([
- sprite("ghosty"),
- pos(100, 100),
- area({ scale: 0.7 }),
- body(),
- "player",
-]);
+scene("main", ({ level } = { level: 0 }) => {
 
-// --- The World ---
-add([
- rect(width(), 48),
- pos(0, height() - 48),
- area(),
- body({ isStatic: true }),
-]);
+    // Array of all level layouts
+    const LEVELS = [
+        [
+            "                             ",
+            "                             ",
+            "                             ",
+            "                             ",
+            "                             ",
+            "                             ",
+            "                             ",
+            "                             ",
+            "                             ",
+            "                             ",
+            "                             ",
+            "                $            ",
+            "=============================",
+        ],
 
-// --- Movement Controls ---
-onKeyDown("left", () => {
- player.move(-200, 0);
+    ];
+
+    const currentLevel = level;
+
+    // Configure what each symbol in the level layout means.
+    const levelConf = {
+        tileWidth: 47,
+        tileHeight: 47,
+        tiles: {
+            " ": () => [],
+            "=": () => [
+                rect(47, 47),
+                color(230, 223, 237),
+                area(),
+                body({ isStatic: true }),
+                "platform",
+            ],
+            "$": () => [
+                sprite("moon"),
+                area(),
+                "moon",
+            ],
+        }
+    };
+
+    addLevel(LEVELS[currentLevel], levelConf);
+
+    // --- The Player Character ---
+    const player = add([
+    sprite("ghosty"),
+    pos(100, 100),
+    area({ scale: 0.7 }),
+    body(),
+    "player",
+    ]);
+
+
+    // --- Movement Controls ---
+    onKeyDown("left", () => {
+    player.move(-200, 0);
+    });
+    onKeyDown("right", () => {
+    player.move(200, 0);
+    });
+    onKeyPress("space", () => {
+    if (player.isGrounded()) {
+    player.jump(650);
+    }
+    });
+
+    //--Moon Collecting Logic--
+    player.onCollide("moon", (moon) => {
+        destroy(moon);
+    });
+
 });
-onKeyDown("right", () => {
- player.move(200, 0);
-});
-onKeyPress("space", () => {
- if (player.isGrounded()) {
- player.jump(650);
- }
-});
+
+go("main");
