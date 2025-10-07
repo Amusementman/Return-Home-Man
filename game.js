@@ -36,10 +36,54 @@ function patrol() {
     };
 }
 
+function addDialog() {
+		const h = 160
+		const pad = 16
+		const bg = add([
+			pos(0, height() - h),
+			rect(width(), h),
+			color(0, 0, 0),
+			z(100),
+		])
+		const txt = add([
+			text("", {
+				width: width(),
+			}),
+			pos(0 + pad, height() - h + pad),
+			z(100),
+		])
+		bg.hidden = true
+		txt.hidden = true
+		return {
+			say(t) {
+				txt.text = t
+				bg.hidden = false
+				txt.hidden = false
+			},
+			dismiss() {
+				if (!this.active()) {
+					return
+				}
+				txt.text = ""
+				bg.hidden = true
+				txt.hidden = true
+			},
+			active() {
+				return !bg.hidden
+			},
+			destroy() {
+				bg.destroy()
+				txt.destroy()
+			},
+		}
+	}
+
 
 scene("main", ({ level } = { level: 0}) => {
     
     const FALL_DEATH = 2400
+    let allItems = false
+    const dialog = addDialog()
 
     // Array of all level layouts
     const LEVELS = [
@@ -160,11 +204,9 @@ scene("main", ({ level } = { level: 0}) => {
     }
     });
 
-    let allItems = false
-
 	player.onCollide("item", (c) => {
 		destroy(c)
-        score+= 10;
+        score+= 50;
         if (score == 50){
             scoreLabel.text = "Go through the door";
             allItems = true
@@ -184,11 +226,15 @@ scene("main", ({ level } = { level: 0}) => {
     });
 
     player.onCollide("door", () => {
-        if (currentLevel + 1 < LEVELS.length && ) {
-            go("main", { level: currentLevel + 1 });
-        } else {
-            go("win");
-        }
+        if (hasKey) {
+			if (levelIdx + 1 < levels.length) {
+				go("main", levelIdx + 1)
+			} else {
+				go("win")
+			}
+		} else {
+			dialog.say("you got no key!")
+		}
     });
 
 });
