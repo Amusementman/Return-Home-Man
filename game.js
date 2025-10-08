@@ -36,54 +36,11 @@ function patrol() {
     };
 }
 
-function addDialog() {
-		const h = 160
-		const pad = 16
-		const bg = add([
-			pos(0, height() - h),
-			rect(width(), h),
-			color(0, 0, 0),
-			z(100),
-		])
-		const txt = add([
-			text("", {
-				width: width(),
-			}),
-			pos(0 + pad, height() - h + pad),
-			z(100),
-		])
-		bg.hidden = true
-		txt.hidden = true
-		return {
-			say(t) {
-				txt.text = t
-				bg.hidden = false
-				txt.hidden = false
-			},
-			dismiss() {
-				if (!this.active()) {
-					return
-				}
-				txt.text = ""
-				bg.hidden = true
-				txt.hidden = true
-			},
-			active() {
-				return !bg.hidden
-			},
-			destroy() {
-				bg.destroy()
-				txt.destroy()
-			},
-		}
-	}
 
-
-scene("main", ({ level } = { level: 0}) => {
+scene("main", ({ level, score } = { level: 0, score: 0}) => {
     
     const FALL_DEATH = 2400
     let allItems = false
-    const dialog = addDialog()
 
     // Array of all level layouts
     const LEVELS = [
@@ -102,7 +59,8 @@ scene("main", ({ level } = { level: 0}) => {
             "                $     ^   D >",
             "==============================",
         ],
-                    "                            >",
+        [
+            "                            >",
             "                            >",
             "                            >",
             "                            >",
@@ -116,10 +74,11 @@ scene("main", ({ level } = { level: 0}) => {
             "                $     ^   D >",
             "==============================",
         ],
-
     ];
+    
 
     const currentLevel = level;
+    let currentScore = score;
 
     // Configure what each symbol in the level layout means.
     const levelConf = {
@@ -137,22 +96,22 @@ scene("main", ({ level } = { level: 0}) => {
             "$": () => [
                 sprite("moon"),
                 area(),
-                "item",
+                "moon",
             ],
-                "^": () => [
+            "^": () => [
                 sprite("ghosty"),
                 area(),
                 body(),
                 patrol(),
                 "enemy",
             ],
-                ">": () => [
+            ">": () => [
                 sprite("cloud"),
                 area(),
                 body({ isStatic: true }),
                 "cloud",
             ],
-                "D": () => [
+            "D": () => [
                 sprite("door"),
                 area(),
                 "door",
@@ -164,9 +123,8 @@ scene("main", ({ level } = { level: 0}) => {
     addLevel(LEVELS[currentLevel], levelConf);
 
         // --- Score & UI ---
-    let score = 0;
     const scoreLabel =add([
-        text("Collect the moons"),
+        text("Items Collected: " + score),
         pos(24,24),
         fixed(),
     ]);
@@ -180,40 +138,24 @@ scene("main", ({ level } = { level: 0}) => {
     "player",
     ]);
 
-    	// action() runs every frame
-	player.onUpdate(() => {
-		camScale(1.5)
-        // center camera to player
-		camPos(player.pos)
-		// check fall death
-		if (player.pos.y >= FALL_DEATH) {
-			go("lose")
-		}
-	})
 
     // --- Movement Controls ---
-    onKeyDown("left", () => {
-    player.move(-200, 0);
-    });
-    onKeyDown("right", () => {
-    player.move(200, 0);
-    });
-    onKeyPress("space", () => {
-    if (player.isGrounded()) {
-    player.jump(650);
-    }
-    });
+    onKeyDown("left", () => { player.move(-200, 0); });
+    onKeyDown("right", () => { player.move(200, 0); });
+    onKeyPress("space", () => { if (player.isGrounded()) { player.jump(650); } });
 
-	player.onCollide("item", (c) => {
+    
+	player.onCollide("moon", (c) => {
 		destroy(c)
-        score+= 50;
-        if (score == 50){
-            scoreLabel.text = "Go through the door";
+        score+= 10;
+        if (score == 100){
+            scoreLabel.text = "Go home";
             allItems = true
         }else{
             scoreLabel.text ="Items Collected: " + score;
         }
 	})
+
 
     player.onCollide("enemy", (enemy, col) => {
         if (col.isBottom()) {
@@ -221,34 +163,29 @@ scene("main", ({ level } = { level: 0}) => {
             player.jump(300);
         } else {
             destroy(player);
-            go("lose");
+            go("lose", {score: score});
         }
     });
-
+    
     player.onCollide("door", () => {
-        if (hasKey) {
-			if (levelIdx + 1 < levels.length) {
-				go("main", levelIdx + 1)
-			} else {
-				go("win")
-			}
-		} else {
-			dialog.say("you got no key!")
-		}
+        if (currentLevel + 1 < LEVELS.length) {
+            go("main", { level: currentLevel + 1, score: score });
+        } else {
+            go("win", { score: score });
+        }
     });
 
 });
 
 // --- Lose Scene ---
-scene("lose", () => {
-    add([ text("Game Over"), pos(center()), anchor("center") ]);
-    wait(2, () => { go("main", { level: 0 }); });
+scene("lose", ({ score } = { score: 0 }) => {
+    add([ text("Game Over\nItems Collected: " + score), pos(center()), anchor("center") ]);
+    wait(2, () => { go("main", { level: 0, score: score}); });
 });
 
-// --- Win Scene ---
-scene("win", () => {
-    add([ text("You Win!"), pos(center()), anchor("center") ]);
-    wait(2, () => { go("main", { level: 0 }); });
+scene("win", ({ score } = { score: 0 }) => {
+    add([ text("You Win!\nItems Collected: " + score), pos(center()), anchor("center") ]);
+    wait(2, () => { go("main", { level: 0, score: score}); });
 });
 
 go("main");
